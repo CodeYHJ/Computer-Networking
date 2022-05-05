@@ -9,12 +9,11 @@ import (
 )
 
 type ICMP struct {
-	Type     uint8
-	Code     uint8
-	CheckSum uint16
-	ID       uint16
-	SEQ      uint16
-	Test     string
+	Type       uint8
+	Code       uint8
+	CheckSum   uint16
+	Identifier uint16
+	Seq        uint16
 }
 
 func main() {
@@ -70,39 +69,39 @@ func sendIcmp(icmp ICMP, ipaddr *net.IPAddr) error {
 
 	duration := timeEnd.Sub(timeStart).Nanoseconds() / 1e6
 
-	fmt.Printf("%d bytes from %s: seq=%d time=%dms \n", receive, ipaddr.String(), icmp.SEQ, duration)
+	fmt.Printf("%d bytes from %s: seq=%d ttl=%dms \n", receive, ipaddr.String(), icmp.Seq, duration)
 
 	return err
 
 }
 func getICMP(seq uint16) ICMP {
 	// init ICMP数据结构
-	icmp := &ICMP{Type: 8, Code: 0, CheckSum: 0, Test: "testcode", SEQ: seq}
+	icmp := ICMP{Type: 8, Code: 0, CheckSum: 0, Seq: seq}
 
 	// struct 2 buffer
 	buffer := bytes.Buffer{}
 
 	// write icmp struct in buffter
-	binary.Write(&buffer, binary.BigEndian, &icmp)
+	binary.Write(&buffer, binary.BigEndian, icmp)
 
 	// caculate icmp checksum
 	icmp.CheckSum = caculateCheckSum(buffer.Bytes())
 
 	buffer.Reset()
 
-	return *icmp
+	return icmp
 
 }
 func caculateCheckSum(icmpByte []byte) uint16 {
 	var (
 		checksum uint32 = 0
 		index    int    = 0
-		length          = len(icmpByte)
+		length   int    = len(icmpByte)
 	)
 	for length > 1 {
 
-		sum := uint32(icmpByte[index]) + uint32(icmpByte[index+1])
-		checksum += uint32(sum)
+		sum := uint32(icmpByte[index])<<8 + uint32(icmpByte[index+1])
+		checksum += sum
 		length -= 2
 		index += 2
 
@@ -114,5 +113,5 @@ func caculateCheckSum(icmpByte []byte) uint16 {
 
 	checksum += (checksum >> 16)
 
-	return uint16(checksum)
+	return uint16(^checksum)
 }
