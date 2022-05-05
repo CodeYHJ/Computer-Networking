@@ -22,22 +22,14 @@ func main() {
 	if err != nil {
 		fmt.Printf("ResolveIPAddr报错：%v \n", err)
 	}
-	fmt.Print(ipaddr.String())
-	// init ICMP数据结构
+	fmt.Print(ipaddr.String(), "\n")
 
-	icmp := &ICMP{Type: 8, Code: 0, CheckSum: 0, Test: "testcode", SEQ: 1}
-
-	// struct 2 buffer
-	buffer := bytes.Buffer{}
-
-	// write icmp struct in buffter
-	binary.Write(&buffer, binary.BigEndian, &icmp)
-
-	// caculate icmp checksum
-	icmp.CheckSum = caculateCheckSum(buffer.Bytes())
-
-	if err = sendIcmp(*icmp, ipaddr); err != nil {
-		fmt.Print("fail sentICMP \n")
+	for i := 1; i < 6; i++ {
+		icmp := getICMP(uint16(i))
+		if err = sendIcmp(icmp, ipaddr); err != nil {
+			fmt.Print("fail sentICMP \n")
+		}
+		time.Sleep(2 * time.Second)
 	}
 
 }
@@ -83,7 +75,24 @@ func sendIcmp(icmp ICMP, ipaddr *net.IPAddr) error {
 	return err
 
 }
+func getICMP(seq uint16) ICMP {
+	// init ICMP数据结构
+	icmp := &ICMP{Type: 8, Code: 0, CheckSum: 0, Test: "testcode", SEQ: seq}
 
+	// struct 2 buffer
+	buffer := bytes.Buffer{}
+
+	// write icmp struct in buffter
+	binary.Write(&buffer, binary.BigEndian, &icmp)
+
+	// caculate icmp checksum
+	icmp.CheckSum = caculateCheckSum(buffer.Bytes())
+
+	buffer.Reset()
+
+	return *icmp
+
+}
 func caculateCheckSum(icmpByte []byte) uint16 {
 	var (
 		checksum uint32 = 0
